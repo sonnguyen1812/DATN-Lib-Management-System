@@ -45,7 +45,7 @@ export const registerNewAdmin = catchAsyncErrors(async (req, res, next) => {
       folder: "LIBRARY_MANAGEMENT_SYSTEM_ADMIN_AVATARS",
     },
   );
-  if (!cloudinaryResponse || !cloudinaryResponse.error) {
+  if (!cloudinaryResponse || cloudinaryResponse.error) {
     console.error(
       "Cloudinary error:",
       cloudinaryResponse.error || "Unknown cloudinary error",
