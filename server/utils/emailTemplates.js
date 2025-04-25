@@ -15,5 +15,22 @@ export function generateVerificationOtpEmailTemplate(otpCode) {
         <p>Thank you,<br>BookWorm Team</p>
         <p style="font-size: 12px; color: #444;">This is an automated message. Please do not reply to this email.</p>
     </footer>
-</div>`;
+</div>`
+}
+
+export function generateForgotPasswordEmailTemplate(resetPasswordUrl) {
+  return `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px; background-color: #000; color: #fff;">
+    <h2 style="color: #fff; text-align: center;">Reset Your Password</h2>
+    <p style="font-size: 16px; color: #ccc;">Dear User,</p>
+    <p style="font-size: 16px; color: #ccc;">We received a request to reset your password. Click the link below to reset it:</p>
+    <div style="text-align: center; margin: 20px 0;">
+        <a href="${resetPasswordUrl}" style="display: inline-block; font-size: 18px; font-weight: bold; color: #fff; background-color: #007bff; padding: 10px 20px; border-radius: 5px; text-decoration: none;">Reset Password</a>
+    </div>
+    <p style="font-size: 16px; color: #ccc;">If you did not request this, please ignore this email.</p>
+    <footer style="margin-top: 20px; text-align: center; font-size: 14px; color: #666;">
+        <p>Thank you,<br>BookWorm Team</p>
+        <p style="font-size: 12px; color: #444;">This is an automated message. Please do not reply to this email.</p>
+    </footer>
+    </div>`
 }
