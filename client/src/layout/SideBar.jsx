@@ -12,6 +12,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { logout, resetAuthSlice } from "../store/slices/authSlice.js";
 import { toast } from "react-toastify";
 import { toggleAddNewAdminPopup } from "../store/slices/popUpSlice.js";
+import AddNewAdmin from "../popups/AddNewAdmin.jsx";
 
 const SideBar = ({ isSideBarOpen, setIsSideBarOpen, setSelectedComponent }) => {
   const dispatch = useDispatch();
@@ -32,6 +33,7 @@ const SideBar = ({ isSideBarOpen, setIsSideBarOpen, setSelectedComponent }) => {
       dispatch(resetAuthSlice());
     }
   }, [dispatch, isAuthenticated, error, loading, message]);
+
   return (
     <>
       <aside
@@ -61,8 +63,8 @@ const SideBar = ({ isSideBarOpen, setIsSideBarOpen, setSelectedComponent }) => {
             <img src={bookIcon} alt="icon" />
             <span>Books</span>
           </button>
-          {isAuthenticated && user?.role === "Admin" && (
-            <>
+          {/*{isAuthenticated && user?.role === "Admin" && (*/}
+          {/*  <>*/}
               <button
                 className="w-full py-2 font-medium
            bg-transparent rounded-md hover:cursor-pointer flex
@@ -89,8 +91,8 @@ const SideBar = ({ isSideBarOpen, setIsSideBarOpen, setSelectedComponent }) => {
               >
                 <RiAdminFill className="w-6 h-6" /> <span>Add New Admin</span>
               </button>
-            </>
-          )}
+          {/*  </>*/}
+          {/*)}*/}
           {isAuthenticated && user?.role === "User" && (
             <button
               className="w-full py-2 font-medium
@@ -115,7 +117,7 @@ const SideBar = ({ isSideBarOpen, setIsSideBarOpen, setSelectedComponent }) => {
           <button
             className="py-2 font-medium text-center
          bg-transparent rounded-md hover:cursor-pointer flex
-         items-center justify-center space-x-5 mx-auto w-fit"
+         items-center justify-center space-x-5 mx-auto w-fit" onClick={handleLogout}
           >
             <img src={logoutIcon} alt="icon" />
             <span>Log out</span>
@@ -129,6 +131,7 @@ const SideBar = ({ isSideBarOpen, setIsSideBarOpen, setSelectedComponent }) => {
           block md:hidden"
         />
       </aside>
+      {addNewAdminPopup && <AddNewAdmin />}
     </>
   );
 };
