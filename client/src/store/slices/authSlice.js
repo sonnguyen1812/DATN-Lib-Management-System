@@ -94,7 +94,7 @@ const authSlice = createSlice({
       state.loading = false;
       state.message = action.payload.message;
     },
-    forgotPasswordFailed(state) {
+    forgotPasswordFailed(state, action) {
       state.loading = false;
       state.error = action.payload;
     },
@@ -283,7 +283,7 @@ export const updatePassword = (data) => async (dispatch) => {
     })
     .catch((error) => {
       dispatch(
-        authSlice.actions.resetPasswordFailed(error.response.data.message),
+        authSlice.actions.updatePasswordFailed(error.response.data.message),
       );
     });
 };
