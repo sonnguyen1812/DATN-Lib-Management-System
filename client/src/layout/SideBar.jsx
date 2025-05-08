@@ -104,7 +104,7 @@ const SideBar = ({ isSideBarOpen, setIsSideBarOpen, setSelectedComponent }) => {
         </nav>
         <div className="px-6 py-4">
           <button
-            className="py-2 font-medium text-cent bg-transparent rounded-md hover:cursor-pointer fl items-center justify-center space-x-5 mx-auto w-fit"
+            className="py-2 font-medium text-cent bg-transparent rounded-md hover:cursor-pointer flex items-center justify-center space-x-5 mx-auto w-fit"
             onClick={handleLogout}
           >
             <img src={logoutIcon} alt="icon" />
@@ -115,7 +115,7 @@ const SideBar = ({ isSideBarOpen, setIsSideBarOpen, setSelectedComponent }) => {
           src={closeIcon}
           alt="icon"
           onClick={() => setIsSideBarOpen(!isSideBarOpen)}
-          className="h-fit w-fit absolute top-0 right-4 mt- block md:hidden"
+          className="h-fit w-fit absolute top-4 right-4 mt- block md:hidden"
         />
       </aside>
       {addNewAdminPopup && <AddNewAdmin />}
