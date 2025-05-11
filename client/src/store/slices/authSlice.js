@@ -1,5 +1,6 @@
 import { createSlice } from "@reduxjs/toolkit";
 import axios from "axios";
+import { toggleSettingPopup } from "./popUpSlice";
 
 const authSlice = createSlice({
   name: "auth",
@@ -109,7 +110,7 @@ const authSlice = createSlice({
       state.user = action.payload.user;
       state.isAuthenticated = true;
     },
-    resetPasswordFailed(state) {
+    resetPasswordFailed(state, action) {
       state.loading = false;
       state.error = action.payload;
     },
@@ -122,7 +123,7 @@ const authSlice = createSlice({
       state.loading = false;
       state.message = action.payload;
     },
-    updatePasswordFailed(state) {
+    updatePasswordFailed(state, action) {
       state.loading = false;
       state.error = action.payload;
     },
@@ -280,6 +281,7 @@ export const updatePassword = (data) => async (dispatch) => {
     })
     .then((res) => {
       dispatch(authSlice.actions.updatePasswordSuccess(res.data.message));
+      dispatch(toggleSettingPopup());
     })
     .catch((error) => {
       dispatch(
