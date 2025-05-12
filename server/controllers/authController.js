@@ -122,6 +122,11 @@ export const login = catchAsyncErrors(async (req, res, next) => {
   if (!user) {
     return next(new ErrorHandler("Invalid email or password.", 400));
   }
+  
+  if (user.isLocked) {
+    return next(new ErrorHandler("Your account has been locked. Please contact administrator.", 403));
+  }
+  
   const isPasswordMatched = await bcrypt.compare(password, user.password);
   if (!isPasswordMatched) {
     return next(new ErrorHandler("Invalid email or password.", 400));

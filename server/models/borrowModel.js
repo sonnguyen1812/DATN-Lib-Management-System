@@ -55,6 +55,10 @@ const borrowSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    extensionCount: {
+      type: Number,
+      default: 0,
+    },
   },
   {
     timestamps: true,

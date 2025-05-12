@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useDispatch } from "react-redux";
 import { recordBorrowBook } from "../store/slices/borrowSlice";
 import { toggleRecordBookPopup } from "../store/slices/popUpSlice";
+import { fetchAllUsers } from "../store/slices/userSlice";
 
 const RecordBookPopup = ({ bookId }) => {
     const dispatch = useDispatch();
@@ -9,7 +10,11 @@ const RecordBookPopup = ({ bookId }) => {
 
     const handleRecordBook = (e) => {
         e.preventDefault();
-        dispatch(recordBorrowBook(email, bookId));
+        dispatch(recordBorrowBook(email, bookId))
+            .then(() => {
+                // Reload users list when book is borrowed successfully
+                dispatch(fetchAllUsers());
+            });
     };
 
     return (

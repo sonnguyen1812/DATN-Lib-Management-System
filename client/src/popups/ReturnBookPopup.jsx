@@ -2,14 +2,22 @@ import React from "react";
 import { useDispatch } from "react-redux";
 import { returnBook } from "../store/slices/borrowSlice";
 import { toggleReturnBookPopup } from "../store/slices/popUpSlice";
+import { fetchAllUsers } from "../store/slices/userSlice";
 
 const ReturnBookPopup = ({ bookId, email }) => {
     const dispatch = useDispatch();
 
     const handleReturnBook = (e) => {
         e.preventDefault();
-        dispatch(returnBook(email, bookId));
-        dispatch(toggleReturnBookPopup());
+        dispatch(returnBook(email, bookId))
+            .then(() => {
+                // Reload users list when book is returned successfully
+                dispatch(fetchAllUsers());
+                dispatch(toggleReturnBookPopup());
+            })
+            .catch(() => {
+                dispatch(toggleReturnBookPopup());
+            });
     };
 
     return (

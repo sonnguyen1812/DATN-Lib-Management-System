@@ -68,6 +68,20 @@ const borrowSlice = createSlice({
             state.error = action.payload;
             state.message = null;
         },
+        extendBorrowPeriodRequest(state) {
+            state.loading = true;
+            state.error = null;
+            state.message = null;
+        },
+        extendBorrowPeriodSuccess(state, action) {
+            state.loading = false;
+            state.message = action.payload;
+        },
+        extendBorrowPeriodFailed(state, action) {
+            state.loading = false;
+            state.error = action.payload;
+            state.message = null;
+        },
         resetBorrowSlice(state) {
             state.loading = false;
             state.error = null;
@@ -122,7 +136,7 @@ export const fetchAllBorrowedBooks = () => async (dispatch) => {
 
 export const recordBorrowBook = (email, id) => async (dispatch) => {
     dispatch(borrowSlice.actions.recordBookRequest());
-    await axios
+    return await axios
         .post(
             `http://localhost:4000/api/v1/borrow/record-borrow-book/${id}`,
             { email },
@@ -136,11 +150,13 @@ export const recordBorrowBook = (email, id) => async (dispatch) => {
         .then((res) => {
             dispatch(borrowSlice.actions.recordBookSuccess(res.data.message));
             dispatch(toggleRecordBookPopup());
+            return res;
         })
         .catch((err) => {
             dispatch(
                 borrowSlice.actions.recordBookFailed(err.response.data.message)
             );
+            throw err;
         });
 };
 
@@ -150,7 +166,7 @@ export const returnBook = (email, id) => async (dispatch) => {
     // Ensure bookId is a string ID
     const bookId = typeof id === 'object' ? (id._id || String(id)) : id;
     
-    await axios
+    return await axios
         .put(
             `http://localhost:4000/api/v1/borrow/return-borrowed-book/${bookId}`,
             { email },
@@ -163,11 +179,38 @@ export const returnBook = (email, id) => async (dispatch) => {
         )
         .then((res) => {
             dispatch(borrowSlice.actions.returnBookSuccess(res.data.message));
+            return res;
         })
         .catch((err) => {
             dispatch(
                 borrowSlice.actions.returnBookFailed(err.response.data.message)
             );
+            throw err;
+        });
+};
+
+export const extendBorrowPeriod = (borrowId) => async (dispatch) => {
+    dispatch(borrowSlice.actions.extendBorrowPeriodRequest());
+    return await axios
+        .put(
+            `http://localhost:4000/api/v1/borrow/extend-borrow-period/${borrowId}`,
+            {},
+            {
+                withCredentials: true,
+                headers: {
+                    "Content-Type": "application/json",
+                },
+            }
+        )
+        .then((res) => {
+            dispatch(borrowSlice.actions.extendBorrowPeriodSuccess(res.data.message));
+            return res;
+        })
+        .catch((err) => {
+            dispatch(
+                borrowSlice.actions.extendBorrowPeriodFailed(err.response.data.message)
+            );
+            throw err;
         });
 };
 

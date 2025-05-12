@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { PiKeyReturnBold } from "react-icons/pi";
 import { FaSquareCheck } from "react-icons/fa6";
+import { Calendar } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import { toggleReturnBookPopup } from "../store/slices/popUpSlice";
 import { toast } from "react-toastify";
@@ -8,7 +9,9 @@ import { fetchAllBooks, resetBookSlice } from "../store/slices/bookSlice";
 import {
     fetchAllBorrowedBooks,
     resetBorrowSlice,
+    extendBorrowPeriod
 } from "../store/slices/borrowSlice";
+import { fetchAllUsers } from "../store/slices/userSlice";
 import ReturnBookPopup from "../popups/ReturnBookPopup";
 import Header from "../layout/Header";
 
@@ -19,6 +22,7 @@ const Catalog = () => {
     const { loading, error, allBorrowedBooks, message } =
         useSelector((state) => state.borrow);
     const [filter, setFilter] = useState("borrowed");
+    const [extendingBook, setExtendingBook] = useState(null);
 
     const formatDateAndTime = (timeStamp) => {
         const date = new Date(timeStamp);
@@ -44,17 +48,31 @@ const Catalog = () => {
             date.getMonth() + 1
         ).padStart(2, "0")}-${String(date.getFullYear())}`;
     };
+    
+    // Tính tiền phạt cho sách quá hạn
+    const calculateCurrentFine = (dueDate) => {
+        const finePerHour = 0.1; // 10 cents per hour
+        const today = new Date();
+        const dueDateObj = new Date(dueDate);
+        
+        if (today > dueDateObj) {
+            const lateHours = Math.ceil((today - dueDateObj) / (1000 * 60 * 60));
+            const fine = parseFloat((lateHours * finePerHour).toFixed(2));
+            return fine;
+        }
+        return 0;
+    };
 
     const CurrentDate = new Date();
 
     const borrowedBooks = allBorrowedBooks?.filter((book) => {
         const dueDate = new Date(book.dueDate);
-        return dueDate > CurrentDate;
+        return dueDate > CurrentDate && !book.returnDate;
     });
 
     const overdueBooks = allBorrowedBooks?.filter((book) => {
         const dueDate = new Date(book.dueDate);
-        return dueDate <= CurrentDate;
+        return dueDate <= CurrentDate && !book.returnDate;
     });
 
     const booksToDisplay = filter === "borrowed" ? borrowedBooks : overdueBooks;
@@ -70,20 +88,29 @@ const Catalog = () => {
         setEmail(email);
         dispatch(toggleReturnBookPopup());
     };
+    
+    const handleExtendPeriod = (borrowId) => {
+        if (loading) return;
+        setExtendingBook(borrowId);
+        dispatch(extendBorrowPeriod(borrowId));
+    };
 
     useEffect(() => {
         if (message) {
             toast.success(message);
             dispatch(fetchAllBooks());
             dispatch(fetchAllBorrowedBooks());
+            dispatch(fetchAllUsers());
             dispatch(resetBookSlice());
             dispatch(resetBorrowSlice());
+            setExtendingBook(null);
         }
         if (error) {
             toast.error(error);
             dispatch(resetBorrowSlice());
+            setExtendingBook(null);
         }
-    }, [dispatch, error, loading]);
+    }, [dispatch, error, message, loading]);
 
     return (
         <>
@@ -146,8 +173,11 @@ const Catalog = () => {
                                             Fine
                                         </th>
                                     )}
-                                    <th className="px-4 py-2 text-left">
-                                        Return
+                                    <th className="px-4 py-2 text-center">
+                                        Extensions
+                                    </th>
+                                    <th className="px-4 py-2 text-center w-28">
+                                        Actions
                                     </th>
                                 </tr>
                             </thead>
@@ -157,7 +187,9 @@ const Catalog = () => {
                                     <tr
                                         key={index}
                                         className={
-                                            (index + 1) % 2 === 0
+                                            filter === "overdue"
+                                                ? "bg-red-50"
+                                                : (index + 1) % 2 === 0
                                                 ? "bg-gray-50"
                                                 : ""
                                         }
@@ -180,7 +212,7 @@ const Catalog = () => {
                                         <td className="px-4 py-2">
                                             ${book.price}
                                         </td>
-                                        <td className="px-4 py-2">
+                                        <td className={`px-4 py-2 ${filter === "overdue" ? "text-red-600 font-semibold" : ""}`}>
                                             {formatDate(book.dueDate)}
                                         </td>
                                         <td className="px-4 py-2">
@@ -188,26 +220,57 @@ const Catalog = () => {
                                         </td>
                                         {filter === "overdue" && (
                                             <td className="px-4 py-2 text-red-600 font-medium">
-                                                ${book.fine || 0}
+                                                ${book.returnDate ? book.fine : calculateCurrentFine(book.dueDate)}
                                             </td>
                                         )}
-                                        <td className="px-4 py-2">
-                                            {book.returnDate ? (
-                                                <FaSquareCheck className="w-6 h-6 text-green-600" />
-                                            ) : (
-                                                <PiKeyReturnBold
-                                                    onClick={() => {
-                                                        console.log("Book object:", book);
-                                                        console.log("Book.book:", book.book);
-                                                        console.log("Book._id:", book._id);
-                                                        openReturnBookPopup(
-                                                            book._id,
-                                                            book?.user.email
-                                                        )
-                                                    }}
-                                                    className="w-6 h-6 cursor-pointer hover:text-blue-600"
-                                                />
-                                            )}
+                                        <td className="px-4 py-2 text-center">
+                                            <span className="px-2 py-1 bg-gray-100 rounded text-xs">
+                                                {book.extensionCount || 0}/2
+                                            </span>
+                                        </td>
+                                        <td className="px-4 py-2 text-center">
+                                            <div className="flex gap-2 justify-center">
+                                                {!book.returnDate && (
+                                                    <>
+                                                        <button
+                                                            onClick={() => handleExtendPeriod(book._id)}
+                                                            disabled={loading || filter === "overdue" || book.extensionCount >= 2}
+                                                            className={`p-1.5 rounded-full flex items-center justify-center ${
+                                                                filter === "overdue" || book.extensionCount >= 2
+                                                                    ? "bg-gray-200 cursor-not-allowed text-gray-500"
+                                                                    : "bg-blue-100 hover:bg-blue-200 text-blue-700"
+                                                            }`}
+                                                            title={
+                                                                filter === "overdue"
+                                                                    ? "Cannot extend overdue books"
+                                                                    : book.extensionCount >= 2
+                                                                    ? "Maximum extensions reached (2)"
+                                                                    : "Extend by 7 days"
+                                                            }
+                                                        >
+                                                            {loading && extendingBook === book._id ? 
+                                                                <span className="animate-pulse">...</span> :
+                                                                <Calendar size={16} />
+                                                            }
+                                                        </button>
+                                                        <button
+                                                            onClick={() => {
+                                                                console.log("Book object:", book);
+                                                                openReturnBookPopup(book._id, book.user.email);
+                                                            }}
+                                                            className="p-1.5 rounded-full flex items-center justify-center bg-green-100 hover:bg-green-200 text-green-700"
+                                                            title="Return book"
+                                                        >
+                                                            <PiKeyReturnBold size={16} />
+                                                        </button>
+                                                    </>
+                                                )}
+                                                {book.returnDate && (
+                                                    <span className="text-green-600 flex items-center gap-1">
+                                                        <FaSquareCheck size={16} /> Returned
+                                                    </span>
+                                                )}
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}
@@ -215,12 +278,22 @@ const Catalog = () => {
                         </table>
                     </div>
                 ) : (
-                    <h3 className="text-3xl mt-5 font-medium">
-                        No {filter === "borrowed" ? "borrowed" : "overdue"} Books
-                    </h3>
+                    <div className="mt-6 flex justify-center">
+                        <h3 className="text-xl font-semibold">
+                            {filter === "borrowed" 
+                                ? "No borrowed books found." 
+                                : "No overdue books found."}
+                        </h3>
+                    </div>
+                )}
+
+                {returnBookPopup && (
+                    <ReturnBookPopup
+                        bookId={borrowedBookId}
+                        email={email}
+                    />
                 )}
             </main>
-            {returnBookPopup && <ReturnBookPopup bookId={borrowedBookId} email={email}/>}
         </>
     );
 };

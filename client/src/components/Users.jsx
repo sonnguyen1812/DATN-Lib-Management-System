@@ -1,9 +1,12 @@
 import React from "react";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import Header from "../layout/Header";
+import { Lock, Unlock } from "lucide-react";
+import { toggleUserLock } from "../store/slices/userSlice";
 
 const Users = () => {
-    const { users } = useSelector((state) => state.user);
+    const dispatch = useDispatch();
+    const { users, loading } = useSelector((state) => state.user);
 
     const formatDate = (timeStamp) => {
         const date = new Date(timeStamp);
@@ -21,6 +24,10 @@ const Users = () => {
         ).padStart(2, "0")}`;
         const result = `${formattedDate} ${formattedTime}`;
         return result;
+    };
+
+    const handleToggleLock = (userId) => {
+        dispatch(toggleUserLock(userId));
     };
 
     return (
@@ -54,7 +61,13 @@ const Users = () => {
                                         No. of Books borrowed
                                     </th>
                                     <th className="px-4 py-2 text-center">
+                                        Status
+                                    </th>
+                                    <th className="px-4 py-2 text-center">
                                         Registered On
+                                    </th>
+                                    <th className="px-4 py-2 text-center">
+                                        Actions
                                     </th>
                                 </tr>
                             </thead>
@@ -87,7 +100,39 @@ const Users = () => {
                                                 {user?.borrowedBooks.length}
                                             </td>
                                             <td className="px-4 py-2 text-center">
+                                                {user.isLocked ? (
+                                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                                        Locked
+                                                    </span>
+                                                ) : (
+                                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                                        Active
+                                                    </span>
+                                                )}
+                                            </td>
+                                            <td className="px-4 py-2 text-center">
                                                 {formatDate(user.createdAt)}
+                                            </td>
+                                            <td className="px-4 py-2 text-center">
+                                                <button
+                                                    onClick={() => handleToggleLock(user._id)}
+                                                    className={`px-3 py-1 text-sm text-white rounded-md ${
+                                                        user.isLocked
+                                                            ? "bg-green-600 hover:bg-green-700"
+                                                            : "bg-slate-700 hover:bg-slate-800"
+                                                    }`}
+                                                    disabled={loading}
+                                                >
+                                                    {user.isLocked ? (
+                                                        <div className="flex items-center">
+                                                            <Unlock className="w-4 h-4 mr-1" /> Unlock
+                                                        </div>
+                                                    ) : (
+                                                        <div className="flex items-center">
+                                                            <Lock className="w-4 h-4 mr-1" /> Lock
+                                                        </div>
+                                                    )}
+                                                </button>
                                             </td>
                                         </tr>
                                     ))}

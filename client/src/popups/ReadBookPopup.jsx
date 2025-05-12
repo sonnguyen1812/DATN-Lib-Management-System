@@ -31,18 +31,18 @@ const ReadBookPopup = ({ book }) => {
                         
                         <div className="md:w-2/3 space-y-4">
                             <div>
-                                <label className="block text-gray-700 font-semibold">
-                                    Book Title
-                                </label>
-                                <p className="border border-gray-300 rounded-lg px-4 py-2 bg-gray-100">
+                        <label className="block text-gray-700 font-semibold">
+                            Book Title
+                        </label>
+                        <p className="border border-gray-300 rounded-lg px-4 py-2 bg-gray-100">
                                     {book?.title}
-                                </p>
-                            </div>
+                        </p>
+                    </div>
                             <div>
-                                <label className="block text-gray-700 font-semibold">
-                                    Author
-                                </label>
-                                <p className="border border-gray-300 rounded-lg px-4 py-2 bg-gray-100">
+                        <label className="block text-gray-700 font-semibold">
+                            Author
+                        </label>
+                        <p className="border border-gray-300 rounded-lg px-4 py-2 bg-gray-100">
                                     {book?.author}
                                 </p>
                             </div>

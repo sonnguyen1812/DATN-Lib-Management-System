@@ -35,17 +35,30 @@ const Header = () => {
         <>
             <header className="absolute top-0 bg-white w-full py-4 px-6 left-0 shadow-md flex justify-between items-center">
                 {/* LEFT SIDE */}
-                <div className="flex items-center gap-2">
-                    <img src={userIcon} alt="User Icon" className="w-8 h-8" />
+                <div className="flex items-center gap-3">
+                    {user?.avatar && user.avatar.url ? (
+                        <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-gray-200">
+                            <img 
+                                src={user.avatar.url} 
+                                alt={`${user.name}'s avatar`} 
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                    e.target.src = userIcon;
+                                }}
+                            />
+                        </div>
+                    ) : (
+                        <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center">
+                            <img src={userIcon} alt="User Icon" className="w-6 h-6" />
+                        </div>
+                    )}
                     <div className="flex flex-col">
                         <span className="text-sm font-medium sm:text-lg lg:text-xl sm:font-semibold">
                             {user && user.name}
                         </span>
-                        <span className="text-sm font-medium sm:text-lg sm:font-medium">
+                        <span className="text-sm text-gray-600 font-medium">
                             {user && user.role}
                         </span>
-                        {/*<span>Son Nguyen</span>*/}
-                        {/*<span>Admin</span>*/}
                     </div>
                 </div>
                 {/* RIGHT SIDE */}
@@ -58,7 +71,7 @@ const Header = () => {
                     <img
                         src={settingIcon}
                         alt="settingIcon"
-                        className="w-8 h-8"
+                        className="w-8 h-8 cursor-pointer hover:opacity-80"
                         onClick={() => dispatch(toggleSettingPopup())}
                     />
                 </div>

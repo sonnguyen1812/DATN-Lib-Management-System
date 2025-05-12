@@ -153,3 +153,62 @@ export const getBorrowedBooksForAdmin = catchAsyncErrors(
     });
   },
 );
+
+export const extendBorrowPeriod = catchAsyncErrors(async (req, res, next) => {
+  const { borrowId } = req.params;
+  
+  // Tìm bản ghi mượn sách
+  const borrow = await Borrow.findById(borrowId);
+  if (!borrow) {
+    return next(new ErrorHandler(`Borrow record not found with ID: ${borrowId}`, 404));
+  }
+  
+  // Kiểm tra xem người dùng có quyền gia hạn không
+  if (borrow.user.id.toString() !== req.user._id.toString() && req.user.role !== "Admin") {
+    return next(new ErrorHandler("You are not authorized to extend this borrow period", 403));
+  }
+  
+  // Kiểm tra xem đã trả sách chưa
+  if (borrow.returnDate) {
+    return next(new ErrorHandler("Cannot extend period for a returned book", 400));
+  }
+  
+  // Kiểm tra xem đã gia hạn quá 2 lần chưa
+  if (borrow.extensionCount >= 2) {
+    return next(new ErrorHandler("You have reached the maximum number of extensions (2)", 400));
+  }
+  
+  // Kiểm tra xem có đang quá hạn không
+  const currentDate = new Date();
+  if (currentDate > borrow.dueDate) {
+    return next(new ErrorHandler("Cannot extend period for an overdue book. Please return the book first.", 400));
+  }
+  
+  // Cập nhật ngày hạn trả
+  const newDueDate = new Date(borrow.dueDate);
+  newDueDate.setDate(newDueDate.getDate() + 7); // Thêm 7 ngày
+  
+  borrow.dueDate = newDueDate;
+  borrow.extensionCount = (borrow.extensionCount || 0) + 1;
+  
+  await borrow.save();
+  
+  // Cập nhật thông tin mượn trong user model
+  const user = await User.findById(borrow.user.id);
+  if (user) {
+    const borrowedBook = user.borrowedBooks.find(
+      (b) => b.bookId.toString() === borrow.book.toString() && b.returned === false
+    );
+    
+    if (borrowedBook) {
+      borrowedBook.dueDate = newDueDate;
+      await user.save();
+    }
+  }
+  
+  res.status(200).json({
+    success: true,
+    message: `Borrow period extended successfully. New due date: ${newDueDate.toDateString()}`,
+    borrow
+  });
+});

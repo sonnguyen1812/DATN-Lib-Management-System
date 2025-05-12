@@ -5,6 +5,7 @@ import {
   getBorrowedBooksForAdmin,
   recordBorrowedBook,
   returnBorrowBook,
+  extendBorrowPeriod,
 } from "../controllers/borrowController.js";
 import {
   isAuthenticated,
@@ -31,6 +32,11 @@ router.put(
   isAuthenticated,
   isAuthorized("Admin"),
   returnBorrowBook,
+);
+router.put(
+  "/extend-borrow-period/:borrowId",
+  isAuthenticated,
+  extendBorrowPeriod,
 );
 
 export default router;
