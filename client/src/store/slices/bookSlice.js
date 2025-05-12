@@ -1,6 +1,6 @@
 import { createSlice } from "@reduxjs/toolkit";
 import axios from "axios";
-import { toggleAddBookPopup } from "./popUpSlice";
+import { toggleAddBookPopup, toggleEditBookPopup } from "./popUpSlice";
 import { toast } from "react-toastify";
 
 const bookSlice = createSlice({
@@ -39,6 +39,32 @@ const bookSlice = createSlice({
             state.loading = false;
             state.error = action.payload;
         },
+        updateBookRequest(state) {
+            state.loading = true;
+            state.error = null;
+            state.message = null;
+        },
+        updateBookSuccess(state, action) {
+            state.loading = false;
+            state.message = action.payload;
+        },
+        updateBookFailed(state, action) {
+            state.loading = false;
+            state.error = action.payload;
+        },
+        deleteBookRequest(state) {
+            state.loading = true;
+            state.error = null;
+            state.message = null;
+        },
+        deleteBookSuccess(state, action) {
+            state.loading = false;
+            state.message = action.payload;
+        },
+        deleteBookFailed(state, action) {
+            state.loading = false;
+            state.error = action.payload;
+        },
         resetBookSlice(state) {
             state.loading = false;
             state.error = null;
@@ -69,7 +95,7 @@ export const addBook = (data) => async (dispatch) => {
         .post("http://localhost:4000/api/v1/book/admin/add", data, {
             withCredentials: true,
             headers: {
-                "Content-Type": "application/json",
+                "Content-Type": "multipart/form-data",
             },
         })
         .then((res) => {
@@ -82,6 +108,49 @@ export const addBook = (data) => async (dispatch) => {
             dispatch(
                 bookSlice.actions.addBookFailed(err.response.data.message)
             );
+            toast.error(err.response.data.message);
+        });
+};
+
+export const updateBook = (id, data) => async (dispatch) => {
+    dispatch(bookSlice.actions.updateBookRequest());
+    await axios
+        .put(`http://localhost:4000/api/v1/book/update/${id}`, data, {
+            withCredentials: true,
+            headers: {
+                "Content-Type": "multipart/form-data",
+            },
+        })
+        .then((res) => {
+            dispatch(bookSlice.actions.updateBookSuccess(res.data.message));
+            toast.success(res.data.message);
+            dispatch(toggleEditBookPopup());
+            dispatch(fetchAllBooks());
+        })
+        .catch((err) => {
+            dispatch(
+                bookSlice.actions.updateBookFailed(err.response.data.message)
+            );
+            toast.error(err.response.data.message);
+        });
+};
+
+export const deleteBook = (id) => async (dispatch) => {
+    dispatch(bookSlice.actions.deleteBookRequest());
+    await axios
+        .delete(`http://localhost:4000/api/v1/book/delete/${id}`, {
+            withCredentials: true,
+        })
+        .then((res) => {
+            dispatch(bookSlice.actions.deleteBookSuccess(res.data.message));
+            toast.success(res.data.message);
+            dispatch(fetchAllBooks());
+        })
+        .catch((err) => {
+            dispatch(
+                bookSlice.actions.deleteBookFailed(err.response.data.message)
+            );
+            toast.error(err.response.data.message);
         });
 };
 

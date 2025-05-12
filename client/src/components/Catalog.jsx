@@ -16,7 +16,7 @@ const Catalog = () => {
     const dispatch = useDispatch();
 
     const { returnBookPopup } = useSelector((state) => state.popup);
-    const { loading, error, userBorrowedBooks, allBorrowedBooks, message } =
+    const { loading, error, allBorrowedBooks, message } =
         useSelector((state) => state.borrow);
     const [filter, setFilter] = useState("borrowed");
 
@@ -62,6 +62,10 @@ const Catalog = () => {
     const [email, setEmail] = useState("");
     const [borrowedBookId, setBorrowedBookId] = useState("");
     const openReturnBookPopup = (bookId, email) => {
+        if (typeof bookId === 'object' && bookId !== null) {
+            bookId = bookId._id || bookId.toString();
+        }
+        
         setBorrowedBookId(bookId);
         setEmail(email);
         dispatch(toggleReturnBookPopup());
@@ -117,10 +121,16 @@ const Catalog = () => {
                                 <tr className="bg-gray-200">
                                     <th className="px-4 py-2 text-left">ID</th>
                                     <th className="px-4 py-2 text-left">
-                                        Username
+                                        Borrower
                                     </th>
                                     <th className="px-4 py-2 text-left">
                                         Email
+                                    </th>
+                                    <th className="px-4 py-2 text-left">
+                                        Book Title
+                                    </th>
+                                    <th className="px-4 py-2 text-left">
+                                        Author
                                     </th>
                                     <th className="px-4 py-2 text-left">
                                         Price
@@ -129,8 +139,13 @@ const Catalog = () => {
                                         Due Date
                                     </th>
                                     <th className="px-4 py-2 text-left">
-                                        Date & Time
+                                        Borrowed Date
                                     </th>
+                                    {filter === "overdue" && (
+                                        <th className="px-4 py-2 text-left">
+                                            Fine
+                                        </th>
+                                    )}
                                     <th className="px-4 py-2 text-left">
                                         Return
                                     </th>
@@ -157,26 +172,40 @@ const Catalog = () => {
                                             {book?.user.email}
                                         </td>
                                         <td className="px-4 py-2">
-                                            {book.price}
+                                            {book?.bookTitle || "Unknown Book"}
+                                        </td>
+                                        <td className="px-4 py-2">
+                                            {book?.bookAuthor || "Unknown Author"}
+                                        </td>
+                                        <td className="px-4 py-2">
+                                            ${book.price}
                                         </td>
                                         <td className="px-4 py-2">
                                             {formatDate(book.dueDate)}
                                         </td>
                                         <td className="px-4 py-2">
-                                            {formatDateAndTime(book.createdAt)}
+                                            {formatDateAndTime(book.borrowDate || book.createdAt)}
                                         </td>
+                                        {filter === "overdue" && (
+                                            <td className="px-4 py-2 text-red-600 font-medium">
+                                                ${book.fine || 0}
+                                            </td>
+                                        )}
                                         <td className="px-4 py-2">
                                             {book.returnDate ? (
-                                                <FaSquareCheck className="w-6 h-6" />
+                                                <FaSquareCheck className="w-6 h-6 text-green-600" />
                                             ) : (
                                                 <PiKeyReturnBold
-                                                    onClick={() =>
+                                                    onClick={() => {
+                                                        console.log("Book object:", book);
+                                                        console.log("Book.book:", book.book);
+                                                        console.log("Book._id:", book._id);
                                                         openReturnBookPopup(
-                                                            book.book,
+                                                            book._id,
                                                             book?.user.email
                                                         )
-                                                    }
-                                                    className="w-6 h-6"
+                                                    }}
+                                                    className="w-6 h-6 cursor-pointer hover:text-blue-600"
                                                 />
                                             )}
                                         </td>

@@ -27,6 +27,14 @@ const borrowSchema = new mongoose.Schema(
       ref: "Book",
       required: true,
     },
+    bookTitle: {
+      type: String,
+      required: true,
+    },
+    bookAuthor: {
+      type: String,
+      required: true,
+    },
     borrowDate: {
       type: Date,
       default: Date.now,

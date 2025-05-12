@@ -7,6 +7,7 @@ import {
   addBook,
   deleteBook,
   getAllBooks,
+  updateBook,
 } from "../controllers/bookController.js";
 import express from "express";
 
@@ -19,6 +20,12 @@ router.delete(
   isAuthenticated,
   isAuthorized("Admin"),
   deleteBook,
+);
+router.put(
+  "/update/:id",
+  isAuthenticated,
+  isAuthorized("Admin"),
+  updateBook,
 );
 
 export default router;

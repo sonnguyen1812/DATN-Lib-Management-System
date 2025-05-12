@@ -29,6 +29,20 @@ const bookSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    image: {
+      public_id: {
+        type: String,
+        default: "",
+      },
+      url: {
+        type: String,
+        default: "/public/placeholder.jpg",
+      },
+    },
+    genre: {
+      type: String,
+      default: "General",
+    },
   },
   {
     timestamps: true,

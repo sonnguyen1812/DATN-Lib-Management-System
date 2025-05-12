@@ -9,6 +9,7 @@ const popupSlice = createSlice({
     recordBookPopup: false,
     returnBookPopup: false,
     addNewAdminPopup: false,
+    editBookPopup: false,
   },
   reducers: {
     toggleSettingPopup(state) {
@@ -29,6 +30,9 @@ const popupSlice = createSlice({
     toggleAddNewAdminPopup(state) {
       state.addNewAdminPopup = !state.addNewAdminPopup;
     },
+    toggleEditBookPopup(state) {
+      state.editBookPopup = !state.editBookPopup;
+    },
     closeAllPopup(state) {
       state.settingPopup = false;
       state.addBookPopup = false;
@@ -36,6 +40,7 @@ const popupSlice = createSlice({
       state.recordBookPopup = false;
       state.returnBookPopup = false;
       state.addNewAdminPopup = false;
+      state.editBookPopup = false;
     },
   },
 });
@@ -48,6 +53,7 @@ export const {
   toggleRecordBookPopup,
   toggleReturnBookPopup,
   toggleAddNewAdminPopup,
+  toggleEditBookPopup,
 } = popupSlice.actions;
 
 export default popupSlice.reducer;

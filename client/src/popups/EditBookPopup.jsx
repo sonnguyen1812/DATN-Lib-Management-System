@@ -1,12 +1,12 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { addBook } from "../store/slices/bookSlice";
-import { toggleAddBookPopup } from "../store/slices/popUpSlice";
+import { updateBook } from "../store/slices/bookSlice";
+import { toggleEditBookPopup } from "../store/slices/popUpSlice";
 import placeholderImg from "../assets/placeholder.jpg";
 
-const AddBookPopup = () => {
+const EditBookPopup = ({ book }) => {
     const dispatch = useDispatch();
-    const {loading} = useSelector(state => state.book);
+    const { loading } = useSelector(state => state.book);
 
     const [title, setTitle] = useState("");
     const [author, setAuthor] = useState("");
@@ -16,6 +16,18 @@ const AddBookPopup = () => {
     const [genre, setGenre] = useState("General");
     const [image, setImage] = useState(null);
     const [imagePreview, setImagePreview] = useState(null);
+
+    useEffect(() => {
+        if (book) {
+            setTitle(book.title || "");
+            setAuthor(book.author || "");
+            setPrice(book.price || "");
+            setQuantity(book.quantity || "");
+            setDescription(book.description || "");
+            setGenre(book.genre || "General");
+            setImagePreview(book.image?.url || null);
+        }
+    }, [book]);
 
     const handleImageChange = (e) => {
         const file = e.target.files[0];
@@ -29,7 +41,7 @@ const AddBookPopup = () => {
         }
     };
 
-    const handleAddBook = (e) => {
+    const handleUpdateBook = (e) => {
         e.preventDefault();
         const formData = new FormData();
         formData.append("title", title);
@@ -41,7 +53,7 @@ const AddBookPopup = () => {
         if(image) {
             formData.append("image", image);
         }
-        dispatch(addBook(formData));
+        dispatch(updateBook(book._id, formData));
     };
 
     const genres = [
@@ -67,8 +79,8 @@ const AddBookPopup = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 p-5 flex items-center justify-center z-50">
             <div className="w-full bg-white rounded-lg shadow-lg md:w-2/3 lg:w-1/2 max-h-[90vh] overflow-y-auto">
                 <div className="p-6">
-                    <h3 className="text-xl font-bold mb-4">Add New Book</h3>
-                    <form onSubmit={handleAddBook} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <h3 className="text-xl font-bold mb-4">Edit Book</h3>
+                    <form onSubmit={handleUpdateBook} className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="md:col-span-1 space-y-4">
                             <div>
                                 <label className="block text-gray-900 font-medium">
@@ -148,9 +160,10 @@ const AddBookPopup = () => {
                                         src={imagePreview || placeholderImg} 
                                         alt="Book cover preview" 
                                         className="w-40 h-60 object-cover border rounded-md mb-2"
+                                        onError={(e) => {e.target.src = placeholderImg}}
                                     />
                                     <label className="bg-gray-200 hover:bg-gray-300 py-2 px-4 rounded cursor-pointer">
-                                        <span>Upload Image</span>
+                                        <span>Change Image</span>
                                         <input 
                                             type="file" 
                                             accept="image/*" 
@@ -180,7 +193,7 @@ const AddBookPopup = () => {
                             <button
                                 className="px-4 py-2 bg-gray-200 rounded-md hover:bg-gray-300"
                                 type="button"
-                                onClick={() => dispatch(toggleAddBookPopup())}
+                                onClick={() => dispatch(toggleEditBookPopup())}
                             >
                                 Cancel
                             </button>
@@ -189,7 +202,7 @@ const AddBookPopup = () => {
                                 className="px-6 py-2 bg-black text-white rounded-md hover:bg-gray-800"
                                 disabled={loading}
                             >
-                                {loading ? "Adding..." : "Add Book"}
+                                {loading ? "Updating..." : "Update Book"}
                             </button>
                         </div>
                     </form>
@@ -199,4 +212,4 @@ const AddBookPopup = () => {
     );
 };
 
-export default AddBookPopup;
+export default EditBookPopup; 

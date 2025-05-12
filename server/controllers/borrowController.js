@@ -38,6 +38,8 @@ export const recordBorrowedBook = catchAsyncErrors(async (req, res, next) => {
     dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
   });
   await user.save();
+  
+  // Lưu thêm thông tin sách trong bảng Borrow
   await Borrow.create({
     user: {
       id: user._id,
@@ -45,9 +47,13 @@ export const recordBorrowedBook = catchAsyncErrors(async (req, res, next) => {
       email: user.email,
     },
     book: book._id,
+    bookTitle: book.title,
+    bookAuthor: book.author,
+    borrowDate: new Date(),
     dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
     price: book.price,
   });
+  
   res.status(200).json({
     success: true,
     message: "Borrowed book recorded successfully.",
@@ -55,48 +61,64 @@ export const recordBorrowedBook = catchAsyncErrors(async (req, res, next) => {
 });
 
 export const returnBorrowBook = catchAsyncErrors(async (req, res, next) => {
-  const { bookId } = req.params;
+  const { bookId } = req.params; // Đây thực ra là ID của bản ghi mượn (borrowId)
   const { email } = req.body;
 
-  const book = await Book.findById(bookId);
-
-  if (!book) {
-    return next(new ErrorHandler("Book not found", 404));
+  console.log("Return Book Request - BorrowID:", bookId, "Type:", typeof bookId);
+  
+  // Tìm bản ghi mượn sách
+  const borrow = await Borrow.findById(bookId);
+  if (!borrow) {
+    return next(new ErrorHandler(`Borrow record not found with ID: ${bookId}`, 404));
   }
-  const user = await User.findOne({ email, accountVerified: true });
+  
+  // Kiểm tra email
+  if (borrow.user.email !== email) {
+    return next(new ErrorHandler("User email does not match borrow record", 400));
+  }
+  
+  // Tìm sách
+  const book = await Book.findById(borrow.book);
+  if (!book) {
+    return next(new ErrorHandler(`Book not found with ID: ${borrow.book}`, 404));
+  }
+  
+  // Tìm user
+  const user = await User.findById(borrow.user.id);
   if (!user) {
     return next(new ErrorHandler("User not found", 404));
   }
+  
+  // Cập nhật thông tin mượn sách trong user
   const borrowedBook = user.borrowedBooks.find(
-    (b) => b.bookId.toString() === bookId && b.returned === false,
+    (b) => b.bookId.toString() === borrow.book.toString() && b.returned === false,
   );
-  if (!borrowedBook) {
-    return next(new ErrorHandler("You have not borrowed this book", 400));
+  
+  if (borrowedBook) {
+    borrowedBook.returned = true;
+    await user.save();
   }
-  borrowedBook.returned = true;
-  await user.save();
 
+  // Cập nhật số lượng sách
   book.quantity += 1;
   book.availability = book.quantity > 0;
   await book.save();
 
-  const borrow = await Borrow.findOne({
-    book: bookId,
-    "user.email": email,
-    returnDate: null,
-  });
-  if (!borrow) {
-    return next(new ErrorHandler("You have not borrowed this book", 400));
+  // Cập nhật thông tin trả sách
+  if (borrow.returnDate) {
+    return next(new ErrorHandler("This book has already been returned", 400));
   }
+  
   borrow.returnDate = new Date();
   const fine = calculateFine(borrow.dueDate);
   borrow.fine = fine;
   await borrow.save();
+  
   res.status(200).json({
     success: true,
     message:
       fine !== 0
-        ? `the book has been returned successfully. The total charges, including a fine, are $${fine + book.price} `
+        ? `The book has been returned successfully. The total charges, including a fine, are $${fine + book.price}`
         : `The book has been returned successfully. The total charges are $${book.price}`,
   });
 });
@@ -111,10 +133,23 @@ export const borrowedBooks = catchAsyncErrors(async (req, res, next) => {
 
 export const getBorrowedBooksForAdmin = catchAsyncErrors(
   async (req, res, next) => {
-    const borrowedBooks = await Borrow.find();
+    const borrowedBooks = await Borrow.find().populate({
+      path: "book",
+      select: "title author price image"
+    });
+    
+    // Thêm bookTitle vào mỗi đối tượng borrow từ document book đã populate
+    const borrowsWithTitle = borrowedBooks.map(borrow => {
+      const borrowObj = borrow.toObject();
+      borrowObj.bookTitle = borrow.book ? borrow.book.title : "Unknown Book";
+      borrowObj.bookAuthor = borrow.book ? borrow.book.author : "Unknown Author";
+      borrowObj.bookImage = borrow.book ? borrow.book.image : null;
+      return borrowObj;
+    });
+    
     res.status(200).json({
       success: true,
-      borrowedBooks,
+      borrowedBooks: borrowsWithTitle,
     });
   },
 );

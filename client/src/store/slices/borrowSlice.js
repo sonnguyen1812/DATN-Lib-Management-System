@@ -146,9 +146,13 @@ export const recordBorrowBook = (email, id) => async (dispatch) => {
 
 export const returnBook = (email, id) => async (dispatch) => {
     dispatch(borrowSlice.actions.returnBookRequest());
+    
+    // Ensure bookId is a string ID
+    const bookId = typeof id === 'object' ? (id._id || String(id)) : id;
+    
     await axios
         .put(
-            `http://localhost:4000/api/v1/borrow/return-borrowed-book/${id}`,
+            `http://localhost:4000/api/v1/borrow/return-borrowed-book/${bookId}`,
             { email },
             {
                 withCredentials: true,
