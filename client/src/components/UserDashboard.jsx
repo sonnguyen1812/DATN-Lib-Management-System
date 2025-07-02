@@ -1,8 +1,5 @@
 import { useEffect, useState } from "react";
-import returnIcon from "../assets/redo.png";
-import browseIcon from "../assets/pointing.png";
-import bookIcon from "../assets/book-square.png";
-import { Pie } from "react-chartjs-2";
+import { Pie, Bar } from "react-chartjs-2";
 import { useSelector } from "react-redux";
 import Header from "../layout/Header";
 import { Link } from "react-router-dom";
@@ -18,7 +15,14 @@ import {
   PointElement,
   ArcElement,
 } from "chart.js";
-import logo from "../assets/black-logo.png";
+import { 
+  BookOpen, 
+  Clock, 
+  AlertTriangle, 
+  CheckCircle,
+  Calendar,
+  BookMarked
+} from "lucide-react";
 
 ChartJS.register(
   CategoryScale,
@@ -40,6 +44,7 @@ const UserDashboard = () => {
     const [totalReturnedBooks, setTotalReturnedBooks] = useState(0);
     const [overdueBooks, setOverdueBooks] = useState([]);
     const [upcomingDueBooks, setUpcomingDueBooks] = useState([]);
+    const [activeBorrowedBooks, setActiveBorrowedBooks] = useState([]);
 
     useEffect(() => {
         let numberOfTotalBorrowedBooks = userBorrowedBooks.filter(
@@ -51,6 +56,7 @@ const UserDashboard = () => {
         
         setTotalBorrowedBooks(numberOfTotalBorrowedBooks.length);
         setTotalReturnedBooks(numberOfTotalReturnedBooks.length);
+        setActiveBorrowedBooks(numberOfTotalBorrowedBooks);
         
         // Filter for overdue books
         const currentDate = new Date();
@@ -74,30 +80,65 @@ const UserDashboard = () => {
         const date = new Date(dateString);
         return `${date.getDate().toString().padStart(2, '0')}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getFullYear()}`;
     };
+    
+    // Calculate days remaining or overdue
+    const getDaysRemaining = (dueDate) => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const due = new Date(dueDate);
+        due.setHours(0, 0, 0, 0);
+        
+        const differenceInTime = due.getTime() - today.getTime();
+        const differenceInDays = Math.ceil(differenceInTime / (1000 * 3600 * 24));
+        
+        return differenceInDays;
+    };
+    
+    // Get status color based on days remaining
+    const getStatusColor = (daysRemaining) => {
+        if (daysRemaining < 0) return "text-red-600";
+        if (daysRemaining <= 3) return "text-amber-600";
+        return "text-green-600";
+    };
+    
+    // Get status text based on days remaining
+    const getStatusText = (daysRemaining) => {
+        if (daysRemaining < 0) return `${Math.abs(daysRemaining)} days overdue`;
+        if (daysRemaining === 0) return "Due today";
+        if (daysRemaining === 1) return "Due tomorrow";
+        return `${daysRemaining} days remaining`;
+    };
 
-    const data = {
-        labels: ["Borrowed Books", "Returned Books"],
+    const pieData = {
+        labels: ["Currently Borrowed", "Returned"],
         datasets: [
             {
                 data: [totalBorrowedBooks, totalReturnedBooks],
-                backgroundColor: ["#3D3E3E", "#151619"],
-                hoverOffset: 4,
+                backgroundColor: ["#334155", "#64748b"],
+                hoverBackgroundColor: ["#1e293b", "#475569"],
                 borderWidth: 0,
             },
         ],
     };
 
-    const options = {
+    const pieOptions = {
         responsive: true,
-        maintainAspectRatio: true,
+        maintainAspectRatio: false,
         plugins: {
             legend: {
-                display: false
+                display: true,
+                position: 'bottom',
+                labels: {
+                    font: {
+                        size: 12,
+                    },
+                    padding: 10,
+                }
             },
             tooltip: {
                 callbacks: {
                     label: function(context) {
-                        return `${context.label}: ${context.raw}`;
+                        return `${context.label}: ${context.raw} (${Math.round(context.raw / (totalBorrowedBooks + totalReturnedBooks || 1) * 100)}%)`;
                     }
                 }
             }
@@ -106,22 +147,33 @@ const UserDashboard = () => {
 
     return (
         <>
-            <main className="relative flex-1 p-6 pt-28">
+            <main className="relative flex-1 p-6 pt-28 bg-gray-50">
                 <Header />
                 
                 {/* User Welcome Section */}
-                <div className="bg-white p-6 rounded-lg shadow-md mb-6">
+                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-6">
                     <div className="flex items-center gap-4">
                         {user?.avatar && (
                             <img 
                                 src={user.avatar.url} 
                                 alt="User avatar" 
-                                className="w-16 h-16 rounded-full object-cover"
+                                className="w-16 h-16 rounded-full object-cover border-2 border-gray-200"
                             />
                         )}
                         <div>
-                            <h2 className="text-2xl font-bold">Welcome, {user?.name}!</h2>
-                            <p className="text-gray-600">
+                            <h2 className="text-2xl font-bold text-gray-800">Welcome, {user?.name}!</h2>
+                            <div className="flex items-center text-gray-600">
+                                <Calendar className="h-4 w-4 mr-1" />
+                                <span>
+                                    {new Date().toLocaleDateString('en-US', { 
+                                        weekday: 'long', 
+                                        year: 'numeric', 
+                                        month: 'long', 
+                                        day: 'numeric' 
+                                    })}
+                                </span>
+                            </div>
+                            <p className="text-gray-600 mt-1">
                                 {totalBorrowedBooks > 0 
                                     ? `You currently have ${totalBorrowedBooks} book${totalBorrowedBooks > 1 ? 's' : ''} borrowed.` 
                                     : 'You don\'t have any books borrowed currently.'}
@@ -134,11 +186,9 @@ const UserDashboard = () => {
                 {(overdueBooks.length > 0 || upcomingDueBooks.length > 0) && (
                     <div className="mb-6">
                         {overdueBooks.length > 0 && (
-                            <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-3 rounded shadow-md">
+                            <div className="bg-red-50 border border-red-200 text-red-700 p-4 mb-3 rounded-xl shadow-sm">
                                 <div className="flex items-center mb-1">
-                                    <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                                    </svg>
+                                    <AlertTriangle className="w-5 h-5 mr-2" />
                                     <p className="font-bold">Overdue Books</p>
                                 </div>
                                 <p>You have {overdueBooks.length} overdue book{overdueBooks.length > 1 ? 's' : ''}. Please return as soon as possible.</p>
@@ -152,11 +202,9 @@ const UserDashboard = () => {
                         )}
                         
                         {upcomingDueBooks.length > 0 && (
-                            <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 rounded shadow-md">
+                            <div className="bg-amber-50 border border-amber-200 text-amber-700 p-4 rounded-xl shadow-sm">
                                 <div className="flex items-center mb-1">
-                                    <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.35 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                                    </svg>
+                                    <Clock className="w-5 h-5 mr-2" />
                                     <p className="font-bold">Books Due Soon</p>
                                 </div>
                                 <p>You have {upcomingDueBooks.length} book{upcomingDueBooks.length > 1 ? 's' : ''} due in the next 3 days.</p>
@@ -171,129 +219,129 @@ const UserDashboard = () => {
                     </div>
                 )}
                 
-                <div className="flex flex-col xl:flex-row gap-6">
-                    {/* LEFT SIDE */}
-                    <div className="flex-[3] flex flex-col gap-7">
-                        <div className="flex flex-col gap-7">
-                            <h3 className="text-xl font-semibold mb-2">Quick Actions</h3>
-                            
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {/* Quick Action Cards */}
-                                <div onClick={() => {
-                                    document.querySelector('[data-component="My Borrowed Books"]')?.click();
-                                }} className="flex items-center gap-3 bg-white p-5 h-32 rounded-lg transition hover:bg-gray-50 hover:shadow-md cursor-pointer">
-                                    <span className="w-[3px] bg-black h-full"></span>
-                                    <span className="bg-gray-200 h-16 w-16 flex justify-center items-center rounded-lg">
-                                        <img
-                                            src={bookIcon}
-                                            alt="book-icon"
-                                            className="w-8 h-8"
-                                        />
-                                    </span>
-                                    <div>
-                                        <p className="text-lg font-semibold">Borrowed Books</p>
-                                        <p className="text-gray-600 text-sm">View and manage your borrowed books</p>
-                                    </div>
-                                </div>
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    {/* Currently Borrowed Books */}
+                    <div className="lg:col-span-2 bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="text-lg font-semibold text-gray-800">Currently Borrowed Books</h3>
+                            {totalBorrowedBooks > 0 && (
+                                <Link 
+                                    to="#" 
+                                    onClick={() => document.querySelector('[data-component="My Borrowed Books"]')?.click()}
+                                    className="text-slate-600 hover:text-slate-800 text-sm font-medium"
+                                >
+                                    View all
+                                </Link>
+                            )}
+                        </div>
+                        
+                        {activeBorrowedBooks.length > 0 ? (
+                            <div className="overflow-x-auto">
+                                <table className="min-w-full divide-y divide-gray-200">
+                                    <thead className="bg-gray-50">
+                                        <tr>
+                                            <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Book</th>
+                                            <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Borrowed Date</th>
+                                            <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Due Date</th>
+                                            <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="bg-white divide-y divide-gray-200">
+                                        {activeBorrowedBooks.slice(0, 5).map((book, index) => {
+                                            const daysRemaining = getDaysRemaining(book.dueDate);
+                                            const statusColor = getStatusColor(daysRemaining);
+                                            const statusText = getStatusText(daysRemaining);
+                                            
+                                            return (
+                                                <tr key={index} className="hover:bg-gray-50">
+                                                    <td className="px-4 py-3 whitespace-nowrap">
+                                                        <div className="flex items-center">
+                                                            <BookMarked className="flex-shrink-0 h-5 w-5 text-gray-400 mr-3" />
+                                                            <div className="ml-1">
+                                                                <div className="text-sm font-medium text-gray-900">{book.bookTitle}</div>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                                                        {formatDate(book.borrowedDate)}
+                                                    </td>
+                                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                                                        {formatDate(book.dueDate)}
+                                                    </td>
+                                                    <td className="px-4 py-3 whitespace-nowrap">
+                                                        <span className={`inline-flex text-xs leading-5 font-semibold ${statusColor}`}>
+                                                            {statusText}
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
                                 
-                                <div onClick={() => {
-                                    document.querySelector('[data-component="Catalog"]')?.click();
-                                }} className="flex items-center gap-3 bg-white p-5 h-32 rounded-lg transition hover:bg-gray-50 hover:shadow-md cursor-pointer">
-                                    <span className="w-[3px] bg-black h-full"></span>
-                                    <span className="bg-gray-200 h-16 w-16 flex justify-center items-center rounded-lg">
-                                        <img
-                                            src={browseIcon}
-                                            alt="catalog-icon"
-                                            className="w-8 h-8"
-                                        />
-                                    </span>
-                                    <div>
-                                        <p className="text-lg font-semibold">Browse Catalog</p>
-                                        <p className="text-gray-600 text-sm">Explore our collection of books</p>
+                                {activeBorrowedBooks.length > 5 && (
+                                    <div className="text-center mt-4">
+                                        <button 
+                                            onClick={() => document.querySelector('[data-component="My Borrowed Books"]')?.click()}
+                                            className="text-sm text-slate-600 hover:text-slate-800 font-medium"
+                                        >
+                                            View all {activeBorrowedBooks.length} borrowed books
+                                        </button>
                                     </div>
-                                </div>
-                                
-                                <div onClick={() => {
-                                    document.querySelector('[data-popup="settingPopup"]')?.click();
-                                }} className="flex items-center gap-3 bg-white p-5 h-32 rounded-lg transition hover:bg-gray-50 hover:shadow-md cursor-pointer">
-                                    <span className="w-[3px] bg-black h-full"></span>
-                                    <span className="bg-gray-200 h-16 w-16 flex justify-center items-center rounded-lg">
-                                        <svg className="w-8 h-8 text-gray-800" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                                        </svg>
-                                    </span>
-                                    <div>
-                                        <p className="text-lg font-semibold">Settings</p>
-                                        <p className="text-gray-600 text-sm">Update your profile and preferences</p>
-                                    </div>
-                                </div>
-                                
-                                <div className="flex items-center gap-3 bg-white p-5 h-32 rounded-lg transition hover:bg-gray-50 hover:shadow-md cursor-pointer">
-                                    <span className="w-[3px] bg-black h-full"></span>
-                                    <span className="bg-gray-200 h-16 w-16 flex justify-center items-center rounded-lg">
-                                        <img
-                                            src={returnIcon}
-                                            alt="history-icon"
-                                            className="w-8 h-8"
-                                        />
-                                    </span>
-                                    <div>
-                                        <p className="text-lg font-semibold">Borrow History</p>
-                                        <p className="text-gray-600 text-sm">View your complete borrowing history</p>
-                                    </div>
-                                </div>
+                                )}
                             </div>
-                        </div>
-
-                        <div className="bg-white p-7 text-lg sm:text-xl xl:text-2xl min-h-52 font-semibold relative flex justify-center items-center rounded-2xl mt-6">
-                            <h4 className="overflow-y-hidden text-center">
-                                &ldquo;Books are a uniquely portable magic. They are the quietest and most constant of friends; they are the most accessible and wisest of counselors, and the most patient of teachers.&rdquo;
-                            </h4>
-                            <p className="text-gray-700 text-sm sm:text-lg absolute right-[35px] sm:right-[35px] bottom-[20px]">
-                                ~ Stephen King
-                            </p>
-                        </div>
+                        ) : (
+                            <div className="bg-gray-50 p-6 rounded-lg text-center">
+                                <BookOpen className="h-12 w-12 text-gray-400 mx-auto mb-2" />
+                                <p className="text-gray-600">You don't have any borrowed books at the moment.</p>
+                                <button
+                                    onClick={() => document.querySelector('[data-component="Books"]')?.click()}
+                                    className="mt-3 px-4 py-2 bg-slate-700 text-white rounded-md hover:bg-slate-800 text-sm"
+                                >
+                                    Browse Books
+                                </button>
+                            </div>
+                        )}
                     </div>
                     
-                    {/* RIGHT SIDE - Statistics */}
-                    <div className="flex-1 bg-white p-6 rounded-lg shadow-md h-fit">
-                        <h3 className="text-lg font-semibold mb-4 text-center">Your Borrowing Summary</h3>
+                    {/* Statistics Section */}
+                    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                        <h3 className="text-lg font-semibold text-gray-800 mb-4">Borrowing Summary</h3>
                         
-                        {/* Chart container with fixed height */}
-                        <div className="mx-auto mb-6" style={{ height: '200px', position: 'relative', maxWidth: '200px' }}>
-                            <Pie
-                                data={data}
-                                options={options}
-                                height={200}
-                                width={200}
-                            />
+                        {/* Chart container */}
+                        <div className="h-52 relative mb-4">
+                            <Pie data={pieData} options={pieOptions} />
                         </div>
                         
-                        {/* Legend */}
-                        <div className="flex flex-col gap-3 mt-4">
-                            <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
-                                <div className="flex items-center gap-2">
-                                    <span className="w-3 h-3 rounded-full bg-[#3D3E3E]"></span>
-                                    <span>Borrowed</span>
-                                </div>
-                                <span className="font-bold">{totalBorrowedBooks}</span>
+                        {/* Statistics cards */}
+                        <div className="grid grid-cols-2 gap-3 mt-4">
+                            <div className="bg-slate-50 p-3 rounded-lg border border-slate-100">
+                                <div className="text-xs text-slate-500 mb-1">Currently Borrowed</div>
+                                <div className="text-2xl font-bold text-slate-800">{totalBorrowedBooks}</div>
                             </div>
-                            <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
-                                <div className="flex items-center gap-2">
-                                    <span className="w-3 h-3 rounded-full bg-[#151619]"></span>
-                                    <span>Returned</span>
-                                </div>
-                                <span className="font-bold">{totalReturnedBooks}</span>
+                            <div className="bg-slate-50 p-3 rounded-lg border border-slate-100">
+                                <div className="text-xs text-slate-500 mb-1">Returned</div>
+                                <div className="text-2xl font-bold text-slate-800">{totalReturnedBooks}</div>
                             </div>
-                            <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
-                                <div className="flex items-center gap-2">
-                                    <span className="w-3 h-3 rounded-full bg-red-500"></span>
-                                    <span>Overdue</span>
-                                </div>
-                                <span className="font-bold">{overdueBooks.length}</span>
+                            <div className="bg-red-50 p-3 rounded-lg border border-red-100">
+                                <div className="text-xs text-red-500 mb-1">Overdue</div>
+                                <div className="text-2xl font-bold text-red-700">{overdueBooks.length}</div>
+                            </div>
+                            <div className="bg-amber-50 p-3 rounded-lg border border-amber-100">
+                                <div className="text-xs text-amber-500 mb-1">Due Soon</div>
+                                <div className="text-2xl font-bold text-amber-700">{upcomingDueBooks.length}</div>
                             </div>
                         </div>
+                    </div>
+                </div>
+                
+                {/* Quote Section */}
+                <div className="mt-6 bg-slate-900 p-6 rounded-xl shadow-sm text-white">
+                    <div className="max-w-3xl mx-auto text-center">
+                        <h4 className="text-lg md:text-xl xl:text-2xl font-medium mb-2">
+                            &ldquo;Books are a uniquely portable magic. They are the quietest and most constant of friends; they are the most accessible and wisest of counselors, and the most patient of teachers.&rdquo;
+                        </h4>
+                        <p className="text-slate-300 md:text-lg">~ Stephen King</p>
                     </div>
                 </div>
             </main>

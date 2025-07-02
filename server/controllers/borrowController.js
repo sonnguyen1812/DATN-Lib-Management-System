@@ -95,8 +95,8 @@ export const returnBorrowBook = catchAsyncErrors(async (req, res, next) => {
   );
   
   if (borrowedBook) {
-    borrowedBook.returned = true;
-    await user.save();
+  borrowedBook.returned = true;
+  await user.save();
   }
 
   // Cập nhật số lượng sách
